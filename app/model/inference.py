@@ -118,15 +118,36 @@ def _load_model(base_model: str, peft_dir: str, dtype: str, device_map: str, tok
     return model
 
 
-def _load_tokenizer(base_model: str, peft_dir: str):
+# def _load_tokenizer(base_model: str, peft_dir: str):
+#     hf_token = os.environ.get("HF_TOKEN")
+#     peft_config_path = os.path.join(peft_dir, "adapter_config.json")
+#     use_peft = bool(peft_dir) and os.path.isdir(peft_dir) and os.path.exists(peft_config_path)
+#     tokenizer_source = peft_dir if use_peft else base_model
+#     tokenizer_kwargs = {"trust_remote_code": True}
+#     if hf_token and tokenizer_source == base_model:
+#         tokenizer_kwargs["token"] = hf_token
+#     return AutoTokenizer.from_pretrained(tokenizer_source, **tokenizer_kwargs)
+
+def _load_tokenizer(base_model: str, peft_dir: Optional[str]):
     hf_token = os.environ.get("HF_TOKEN")
-    peft_config_path = os.path.join(peft_dir, "adapter_config.json")
-    use_peft = bool(peft_dir) and os.path.isdir(peft_dir) and os.path.exists(peft_config_path)
-    tokenizer_source = peft_dir if use_peft else base_model
+
+    # Default: load tokenizer from base model
+    tokenizer_source = base_model
     tokenizer_kwargs = {"trust_remote_code": True}
+
+    # If we have a peft_dir, check if it actually has an adapter_config.json
+    if peft_dir:
+        peft_config_path = os.path.join(peft_dir, "adapter_config.json")
+        use_peft = os.path.isdir(peft_dir) and os.path.exists(peft_config_path)
+        if use_peft:
+            tokenizer_source = peft_dir  # load tokenizer from adapter folder
+
+    # Only pass HF token when loading from base model repo
     if hf_token and tokenizer_source == base_model:
         tokenizer_kwargs["token"] = hf_token
+
     return AutoTokenizer.from_pretrained(tokenizer_source, **tokenizer_kwargs)
+
 
 
 def _cache_key(base_model: str, dtype: str, device_map: str):
