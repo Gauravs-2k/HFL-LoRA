@@ -136,7 +136,10 @@ def main() -> int:
 		if not adapter_path.is_dir():
 			continue
 		name = adapter_path.name
+		# Try standard name first, then edge_lora prefix
 		dataset_path = args.dataset_root / f"{name}.jsonl"
+		if not dataset_path.exists():
+			dataset_path = args.dataset_root / f"edge_lora_{name}.jsonl"
 		records = load_records(dataset_path, limit)
 		if not records:
 			print(f"Skipping {name}: no records")

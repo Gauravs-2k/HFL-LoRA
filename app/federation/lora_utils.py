@@ -10,10 +10,12 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from app.model.inference import parse_dtype
 
 DEFAULT_BASE_MODEL = "Qwen/Qwen1.5-1.8B-Chat"
-DEFAULT_LORA_R = 8
-DEFAULT_LORA_ALPHA = 16
-DEFAULT_LORA_DROPOUT = 0.05
-DEFAULT_LORA_TARGET_MODULES: Optional[Sequence[str]] = ["q_proj", "v_proj"]
+# Optimized hyperparameters for better accuracy
+DEFAULT_LORA_R = 16  # Increased from 8 for better capacity
+DEFAULT_LORA_ALPHA = 32  # Maintain alpha = 2*r ratio
+DEFAULT_LORA_DROPOUT = 0.01  # Reduced from 0.05 for less regularization
+# Expanded target modules for better coverage
+DEFAULT_LORA_TARGET_MODULES: Optional[Sequence[str]] = ["q_proj", "k_proj", "v_proj", "o_proj"]
 DEFAULT_DTYPE = "auto"
 DEFAULT_DEVICE_MAP = "cpu"
 
@@ -34,6 +36,7 @@ def create_lora_model(
     target_modules: Optional[Sequence[str]] = DEFAULT_LORA_TARGET_MODULES,
     dtype: str = DEFAULT_DTYPE,
     device_map: str = DEFAULT_DEVICE_MAP,
+    load_in_4bit: bool = False,
 ) -> Tuple[torch.nn.Module, AutoTokenizer]:
     tokenizer = create_tokenizer(base_model)
     kwargs: Dict[str, object] = {"trust_remote_code": True}
@@ -42,6 +45,9 @@ def create_lora_model(
         kwargs["torch_dtype"] = torch_dtype
     if device_map.lower() != "none":
         kwargs["device_map"] = device_map
+    if load_in_4bit:
+        kwargs["load_in_4bit"] = True
+        kwargs["quantization_config"] = None  # Let transformers handle default 4bit config
     model = AutoModelForCausalLM.from_pretrained(base_model, **kwargs)
     model.resize_token_embeddings(len(tokenizer))
     config = LoraConfig(
@@ -156,6 +162,14 @@ def export_lora_adapter(
     dtype: str = DEFAULT_DTYPE,
     device_map: str = DEFAULT_DEVICE_MAP,
 ) -> None:
+    # Force CPU device_map to prevent CUDA OOM during export
+    # We're only exporting, not running inference, so CPU is fine
+    export_device_map = "cpu"
+    
+    # Clear GPU cache before loading model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
     model, tokenizer = create_lora_model(
         base_model,
         r,
@@ -163,7 +177,7 @@ def export_lora_adapter(
         dropout,
         target_modules=target_modules,
         dtype=dtype,
-        device_map=device_map,
+        device_map=export_device_map,
     )
     device = next(model.parameters()).device
     state = ndarrays_to_lora_state(names, arrays, device)
@@ -171,3 +185,97 @@ def export_lora_adapter(
     output_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
+    
+    # Clean up
+    del model
+    del tokenizer
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
+def compute_lora_similarity(
+    state1: Sequence[np.ndarray],
+    state2: Sequence[np.ndarray],
+) -> float:
+    """
+    Compute cosine similarity between two LoRA parameter states.
+    
+    Parameters
+    ----------
+    state1 : Sequence[np.ndarray]
+        First LoRA state
+    state2 : Sequence[np.ndarray]
+        Second LoRA state
+    
+    Returns
+    -------
+    float
+        Cosine similarity in [0, 1]
+    """
+    dot_product = 0.0
+    norm1_sq = 0.0
+    norm2_sq = 0.0
+    
+    for p1, p2 in zip(state1, state2):
+        p1_flat = p1.astype(np.float32, copy=False).ravel()
+        p2_flat = p2.astype(np.float32, copy=False).ravel()
+        
+        dot_product += np.dot(p1_flat, p2_flat)
+        norm1_sq += np.sum(p1_flat ** 2)
+        norm2_sq += np.sum(p2_flat ** 2)
+    
+    norm1 = np.sqrt(norm1_sq)
+    norm2 = np.sqrt(norm2_sq)
+    
+    if norm1 < 1e-12 or norm2 < 1e-12:
+        return 0.0
+    
+    similarity = dot_product / (norm1 * norm2)
+    return float(max(0.0, min(1.0, similarity)))
+
+
+def extract_lora_embedding(
+    arrays: Sequence[np.ndarray],
+    indices: Optional[Sequence[int]] = None,
+    max_dim: int = 4096,
+) -> np.ndarray:
+    """
+    Extract a fixed-size embedding from LoRA parameters for clustering.
+    
+    Parameters
+    ----------
+    arrays : Sequence[np.ndarray]
+        LoRA parameter arrays
+    indices : Optional[Sequence[int]]
+        Specific indices to use (e.g., only LoRA A matrices).
+        If None, uses all parameters.
+    max_dim : int
+        Maximum embedding dimension
+    
+    Returns
+    -------
+    np.ndarray
+        Fixed-size embedding vector
+    """
+    import math
+    
+    selected = []
+    param_indices = indices if indices is not None else range(len(arrays))
+    
+    for idx in param_indices:
+        if idx < len(arrays):
+            w = arrays[idx].astype(np.float32, copy=False).ravel()
+            selected.append(w)
+    
+    if not selected:
+        return np.zeros((max_dim,), dtype=np.float32)
+    
+    vec = np.concatenate(selected, axis=0)
+    
+    # Downsample if too large
+    if vec.size > max_dim:
+        step = math.ceil(vec.size / max_dim)
+        vec = vec[::step][:max_dim]
+    
+    return vec
+
