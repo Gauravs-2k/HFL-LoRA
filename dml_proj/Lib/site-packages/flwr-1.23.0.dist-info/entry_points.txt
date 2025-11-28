@@ -1,0 +1,10 @@
+[console_scripts]
+flower-simulation=flwr.simulation.run_simulation:run_simulation_from_cli
+flower-superexec=flwr.supercore.cli:flower_superexec
+flower-superlink=flwr.server.app:run_superlink
+flower-supernode=flwr.supernode.cli:flower_supernode
+flwr=flwr.cli.app:app
+flwr-clientapp=flwr.supernode.cli:flwr_clientapp
+flwr-serverapp=flwr.server.serverapp:flwr_serverapp
+flwr-simulation=flwr.simulation.app:flwr_simulation
+

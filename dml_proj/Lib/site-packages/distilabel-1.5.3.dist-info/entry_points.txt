@@ -1,0 +1,5 @@
+[console_scripts]
+distilabel = distilabel.cli.app:app
+
+[mkdocs.plugins]
+distilabel/components-gallery = distilabel.utils.mkdocs.components_gallery:ComponentsGalleryPlugin

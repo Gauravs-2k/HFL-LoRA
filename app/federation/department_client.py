@@ -1,7 +1,11 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Sequence
+
+# Force unbuffered output so prints appear immediately
+sys.stdout.reconfigure(line_buffering=True)
 
 import numpy as np
 import torch
@@ -9,10 +13,24 @@ from datasets import Dataset
 from torch.utils.data import DataLoader
 
 import flwr as fl
+from tqdm import tqdm
 from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
 from app.dataset.chat_logs import load_chat_records
-from app.federation.clustering import cluster_aware_average_selected
+from app.federation.clustering import (
+    cluster_aware_average_selected,
+    department_level_clustering,
+)
+from app.federation.flora_aggregation import (
+    flora_weighted_aggregate,
+    compute_parameter_norm,
+)
+from app.federation.cluster_monitor import (
+    log_cluster_assignment,
+    log_aggregation_stats,
+    compute_and_log_department_similarities,
+)
+from app.federation import cluster_config
 from app.federation.lora_utils import (
     DEFAULT_BASE_MODEL,
     DEFAULT_DEVICE_MAP,
@@ -98,6 +116,7 @@ class DepartmentLoraClient(fl.client.NumPyClient):
         model: Optional[torch.nn.Module] = None,
         tokenizer: Optional[object] = None,
         data_path: Optional[Path] = None,
+        load_in_4bit: bool = False,
     ) -> None:
         self.department = department
         self.base_model = base_model
@@ -115,6 +134,8 @@ class DepartmentLoraClient(fl.client.NumPyClient):
         self.export_dir = export_dir or (Path("results") / "client_exports" / department)
         self.export_dir.mkdir(parents=True, exist_ok=True)
         self.data_path = data_path
+        self.load_in_4bit = load_in_4bit
+
 
         if model is not None and tokenizer is not None:
             self.model = model
@@ -128,16 +149,34 @@ class DepartmentLoraClient(fl.client.NumPyClient):
                 target_modules=target_modules,
                 dtype=dtype,
                 device_map=device_map,
+                load_in_4bit=load_in_4bit,
             ) 
 
-        param_device = next(self.model.parameters()).device
-        if param_device.type in {"meta", "cpu"} and torch.cuda.is_available():
-            self.model.to("cuda")
-            self.device = torch.device("cuda")
-        elif param_device.type != "meta":
-            self.device = param_device
-        else:
-            self.device = torch.device("cpu")
+
+        # Device handling - be careful with 4-bit quantized models
+        try:
+            param_device = next(self.model.parameters()).device
+            
+            # Check if device is None (can happen with 4-bit quantization)
+            if param_device is None:
+                param_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            
+            # For 4-bit models, don't try to move them - they're already optimally placed
+            if self.load_in_4bit:
+                # 4-bit models are already on the correct device
+                self.device = param_device if param_device.type != "meta" else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            elif param_device.type in {"meta", "cpu"} and torch.cuda.is_available():
+                self.model.to("cuda")
+                self.device = torch.device("cuda")
+            elif param_device.type != "meta":
+                self.device = param_device
+            else:
+                self.device = torch.device("cpu")
+        except (StopIteration, AttributeError):
+            # Model has no parameters or device attribute issue
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 
         self.tokenizer.model_max_length = max_seq_length
         self.lora_parameter_names = collect_lora_parameter_names(self.model)
@@ -183,10 +222,12 @@ class DepartmentLoraClient(fl.client.NumPyClient):
             per_device_train_batch_size=self.batch_size,
             num_train_epochs=local_epochs,
             learning_rate=learning_rate,
-            logging_steps=10,
+            logging_steps=5,  # Log frequently so you see it moving
             save_strategy="no",
             report_to="none",
             remove_unused_columns=False,
+            disable_tqdm=False,  # Re-enable progress bar so you see it working!
+            logging_first_step=True,
         )
         trainer = Trainer(
             model=self.model,
@@ -198,9 +239,16 @@ class DepartmentLoraClient(fl.client.NumPyClient):
         train_metrics = train_output.metrics or {}
         loss = float(train_metrics.get("train_loss", train_output.training_loss))
 
+        # Clear trainer to free GPU memory
+        del trainer
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         state = collect_lora_state(self.model, self.lora_parameter_names)
         arrays = lora_state_to_ndarrays(state, self.lora_parameter_names)
 
+        # Export client model for client-side evaluation
+        # Use CPU to avoid GPU memory issues
         export_lora_adapter(
             self.base_model,
             self.lora_parameter_names,
@@ -211,8 +259,9 @@ class DepartmentLoraClient(fl.client.NumPyClient):
             dropout=self.dropout,
             target_modules=self.target_modules,
             dtype=self.dtype,
-            device_map=self.device_map,
+            device_map="cpu",  # Force CPU for export
         )
+        
         metrics = {"department": self.department, "train_loss": loss}
         return arrays, len(records), metrics
 
@@ -319,7 +368,34 @@ def simulate_sequential_training(
     dataset_map: Optional[Mapping[str, Path]] = None,
     num_clusters: int = 2,
     clients_per_department: int = DEFAULT_CLIENTS_PER_DEPARTMENT,
+    enable_dept_clustering: bool = True,
+    load_in_4bit: bool = False,
 ) -> None:
+    """
+    Enhanced federated training with department-level clustering and FLoRA aggregation.
+    
+    Parameters
+    ----------
+    departments : Sequence[str]
+        List of department names
+    rounds : int
+        Number of training rounds
+    enable_dept_clustering : bool
+        Whether to enable department-level clustering (default: True)
+    ... (other parameters same as before)
+    """
+    print(f"\n{'='*80}")
+    print(f"Starting Federated Training with Department-Level Clustering")
+    print(f"{'='*80}")
+    print(f"Departments: {', '.join(departments)}")
+    print(f"Rounds: {rounds}")
+    print(f"Clients per department: {clients_per_department}")
+    print(f"Department clustering: {'ENABLED' if enable_dept_clustering else 'DISABLED'}")
+    print(f"LoRA config: r={r}, alpha={alpha}, dropout={dropout}")
+    print(f"{'='*80}\n")
+    
+    # Initialize model and parameters
+    print("Initializing shared model and tokenizer...", flush=True)
     shared_model, shared_tokenizer = create_lora_model(
         base_model,
         r,
@@ -328,11 +404,16 @@ def simulate_sequential_training(
         target_modules=target_modules,
         dtype=dtype,
         device_map=device_map,
+        load_in_4bit=load_in_4bit,
     )
+    print("✓ Model initialized successfully", flush=True)
+    
+    print("Collecting LoRA parameter names...", flush=True)
     names = collect_lora_parameter_names(shared_model)
     initial_state = lora_state_to_ndarrays(collect_lora_state(shared_model, names), names)
+    print(f"✓ Found {len(names)} LoRA parameters\n", flush=True)
 
-    # Load department-specific adapters
+    # Load department-specific adapters if they exist
     adapters = {}
     adapter_file = Path("app/lora/lora_adapter.json")
     if adapter_file.exists():
@@ -340,6 +421,8 @@ def simulate_sequential_training(
             adapters = json.load(f)
 
     department_states: Dict[str, List[np.ndarray]] = {}
+    previous_dept_states: Dict[str, List[np.ndarray]] = {}  # For FLoRA residual
+    
     for dept in departments:
         adapter_model = adapters.get(dept)
         if adapter_model:
@@ -358,13 +441,19 @@ def simulate_sequential_training(
             department_states[dept] = arrays
         else:
             department_states[dept] = clone_numpy_state(initial_state)
+        
+        previous_dept_states[dept] = clone_numpy_state(department_states[dept])
 
     # Indices for LoRA A matrices only (where we apply clustering/mixing)
     a_indices = [index for index, param_name in enumerate(names) if "lora_A" in param_name]
 
     adapter_root = Path("results") / "adapters"
     adapter_root.mkdir(parents=True, exist_ok=True)
+    
+    metadata_dir = Path(cluster_config.CLUSTER_METADATA_DIR)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
 
+    # Discover client paths for each department
     department_client_paths: Dict[str, List[Path]] = {}
     for dept in departments:
         department_client_paths[dept] = _discover_client_paths(
@@ -373,16 +462,37 @@ def simulate_sequential_training(
             dataset_map,
         )
 
+    # Main training loop
     for round_index in range(1, rounds + 1):
+        print(f"\n{'#'*80}")
+        print(f"# Round {round_index}/{rounds}")
+        print(f"{'#'*80}\n")
+        
+        # ===== PHASE 1: CLIENT TRAINING WITHIN DEPARTMENTS =====
+        print(f"Phase 1: Training clients within each department...")
+        
         for department in departments:
             client_paths = department_client_paths.get(department, [])
             if not client_paths:
+                print(f"  {department}: No client data found, skipping")
                 continue
 
+            print(f"  {department}: Training {len(client_paths)} clients...")
+            
             client_states: List[List[np.ndarray]] = []
             client_weights: List[int] = []
 
-            for client_path in client_paths:
+            # Progress bar for client training
+            pbar = tqdm(
+                enumerate(client_paths),
+                total=len(client_paths),
+                desc=f"  {department}",
+                unit="client",
+                leave=True,
+            )
+            
+            for client_idx, client_path in pbar:
+                pbar.set_postfix({"file": client_path.name[:20]})
                 params = clone_numpy_state(department_states[department])
                 client = DepartmentLoraClient(
                     department=department,
@@ -398,12 +508,13 @@ def simulate_sequential_training(
                     learning_rate=learning_rate,
                     max_records=max_records,
                     max_seq_length=max_seq_length,
-                    export_dir=Path("results") / "client_exports" / department,
+                    export_dir=Path("results") / "client_exports" / department / f"round_{round_index}_client_{client_idx}",
                     model=shared_model,
                     tokenizer=shared_tokenizer,
                     data_path=client_path,
+                    load_in_4bit=load_in_4bit,
                 )
-                arrays, num_examples, _ = client.fit(
+                arrays, num_examples, metrics = client.fit(
                     params,
                     {
                         "round": round_index,
@@ -413,11 +524,19 @@ def simulate_sequential_training(
                 )
                 client_states.append(clone_numpy_state(arrays))
                 client_weights.append(num_examples if num_examples > 0 else 1)
+                
+                # Clean up and free GPU memory after each client
+                del client
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
 
             if not client_states:
                 continue
 
-            aggregated_per_item, _ = cluster_aware_average_selected(
+            # ===== PHASE 2: INTRA-DEPARTMENT AGGREGATION (Client-level) =====
+            # Use cluster-aware aggregation for clients within department
+            aggregated_per_item, client_clusters = cluster_aware_average_selected(
                 list(zip(client_states, client_weights)),
                 a_indices,
                 num_clusters=num_clusters,
@@ -426,6 +545,7 @@ def simulate_sequential_training(
                 random_state=round_index,
             )
 
+            # Apply global mixing (blend cluster averages with local updates)
             if aggregated_per_item:
                 for idx, agg_a in enumerate(aggregated_per_item):
                     if not agg_a:
@@ -442,10 +562,119 @@ def simulate_sequential_training(
                             state[index] = np.array(agg_a[position], copy=True)
                     client_states[idx] = state
 
-            department_states[department] = average_ndarrays(
-                list(zip(client_states, client_weights))
+            # Aggregate all clients using FLoRA method
+            prev_state = previous_dept_states.get(department)
+            if prev_state is not None and cluster_config.FLORA_USE_RESIDUAL:
+                department_states[department] = flora_weighted_aggregate(
+                    list(zip(client_states, client_weights)),
+                    previous_global=prev_state,
+                    momentum=cluster_config.FLORA_MOMENTUM,
+                    use_residual=True,
+                )
+            else:
+                department_states[department] = average_ndarrays(
+                    list(zip(client_states, client_weights))
+                )
+            
+            # Log statistics
+            total_examples = sum(client_weights)
+            avg_loss = 0.0  # Would need to track from metrics
+            param_norm = compute_parameter_norm(department_states[department])
+            
+            if cluster_config.ENABLE_CLUSTER_LOGGING:
+                log_aggregation_stats(
+                    round_index,
+                    department,
+                    len(client_states),
+                    avg_loss,
+                    param_norm,
+                    metadata_dir if cluster_config.SAVE_CLUSTER_METADATA else None,
+                )
+        
+        # ===== PHASE 3: DEPARTMENT-LEVEL CLUSTERING =====
+        if enable_dept_clustering and cluster_config.DEPT_CLUSTERING_ENABLED and len(departments) > 1:
+            print(f"\nPhase 2: Clustering departments based on LoRA similarity...")
+            
+            # Compute and log department similarities
+            if cluster_config.ENABLE_CLUSTER_LOGGING:
+                compute_and_log_department_similarities(
+                    department_states,
+                    round_index,
+                    metadata_dir if cluster_config.SAVE_CLUSTER_METADATA else None,
+                )
+            
+            # Cluster departments
+            dept_clusters, dept_to_cluster = department_level_clustering(
+                department_states,
+                a_indices,
+                num_clusters=None,  # Auto-determine using elbow method
+                max_clusters=cluster_config.DEPT_MAX_CLUSTERS,
+                max_dim=cluster_config.MAX_EMBEDDING_DIM,
+                random_state=cluster_config.RANDOM_SEED + round_index,
             )
-
+            
+            # Log cluster assignments
+            if cluster_config.ENABLE_CLUSTER_LOGGING:
+                log_cluster_assignment(
+                    round_index,
+                    "department",
+                    dept_clusters,
+                    metadata_dir if cluster_config.SAVE_CLUSTER_METADATA else None,
+                )
+            
+            # ===== PHASE 4: INTER-DEPARTMENT AGGREGATION (Within clusters) =====
+            print(f"\nPhase 3: Aggregating departments within clusters...")
+            
+            cluster_aggregated_states: Dict[int, List[np.ndarray]] = {}
+            
+            for cluster_id, dept_list in dept_clusters.items():
+                if len(dept_list) == 1:
+                    # Single department in cluster, no aggregation needed
+                    cluster_aggregated_states[cluster_id] = clone_numpy_state(
+                        department_states[dept_list[0]]
+                    )
+                else:
+                    # Multiple departments in cluster, aggregate them
+                    print(f"  Cluster {cluster_id}: {', '.join(dept_list)}")
+                    
+                    cluster_items = []
+                    for dept in dept_list:
+                        # Weight by parameter norm as proxy for data quantity
+                        weight = max(1, int(compute_parameter_norm(department_states[dept])))
+                        cluster_items.append((department_states[dept], weight))
+                    
+                    # Use FLoRA aggregation for cluster
+                    cluster_aggregated_states[cluster_id] = flora_weighted_aggregate(
+                        cluster_items,
+                        previous_global=None,  # No previous for cluster aggregation
+                        momentum=0.0,  # No momentum at cluster level
+                        use_residual=False,
+                    )
+            
+            # Update department states with cluster-aggregated parameters
+            mixing_ratio = cluster_config.DEPT_CLUSTER_MIXING
+            for dept in departments:
+                cluster_id = dept_to_cluster[dept]
+                cluster_avg = cluster_aggregated_states[cluster_id]
+                
+                # Mix department state with cluster average
+                if mixing_ratio > 0.0 and len(dept_clusters[cluster_id]) > 1:
+                    mixed_state = []
+                    for local, cluster in zip(department_states[dept], cluster_avg):
+                        blended = (
+                            (1.0 - mixing_ratio) * local.astype(np.float32, copy=False)
+                            + mixing_ratio * cluster.astype(np.float32, copy=False)
+                        )
+                        mixed_state.append(blended)
+                    department_states[dept] = mixed_state
+        
+        # Save previous states for next round's FLoRA residual calculation
+        for dept in departments:
+            previous_dept_states[dept] = clone_numpy_state(department_states[dept])
+        
+        # ===== PHASE 5: EXPORT DEPARTMENT ADAPTERS =====
+        print(f"\nPhase 4: Exporting department adapters...")
+        for department in departments:
             export_lora_adapter(
                 base_model,
                 names,
@@ -458,6 +687,18 @@ def simulate_sequential_training(
                 dtype=dtype,
                 device_map=device_map,
             )
+            print(f"  Exported: {department}")
+        
+        print(f"\nRound {round_index} complete!\n")
+    
+    print(f"\n{'='*80}")
+    print(f"Training Complete!")
+    print(f"{'='*80}")
+    print(f"Final adapters saved to: {adapter_root}")
+    if cluster_config.SAVE_CLUSTER_METADATA:
+        print(f"Cluster metadata saved to: {metadata_dir}")
+    print(f"{'='*80}\n")
+
 
 
 def _parse_args() -> argparse.Namespace:
@@ -479,28 +720,33 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--personal-root", type=Path)
     parser.add_argument("--num-clusters", type=int, default=2)
     parser.add_argument("--clients-per-dept", type=int, default=DEFAULT_CLIENTS_PER_DEPARTMENT)
+    parser.add_argument("--load-in-4bit", action="store_true", help="Enable 4-bit quantization")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
+    args = _parse_args()
+    
     participants = ["engineering", "finance", "customer_support", "hr"]
     simulate_sequential_training(
         participants,
-        rounds=3,
-        global_mixing=0.1,
-        learning_rate=2e-4,
-        local_epochs=1,
-        max_records=128,
-        max_seq_length=256,
-        base_model="Qwen/Qwen1.5-1.8B-Chat",
-        device_map="cpu",
-        dtype="float16",
-        r=8,
-        alpha=16,
-        dropout=0.1,
-        batch_size=1,
-        num_clusters=2,
-        clients_per_department=10,
+        rounds=args.rounds,
+        global_mixing=args.global_mix,
+        learning_rate=args.learning_rate,
+        local_epochs=args.local_epochs,
+        max_records=args.max_records,
+        max_seq_length=args.max_seq_length,
+        base_model=args.base_model,
+        device_map=args.device_map,
+        dtype=args.dtype,
+        r=args.lora_r,
+        alpha=args.lora_alpha,
+        dropout=args.lora_dropout,
+        batch_size=args.batch_size,
+        num_clusters=args.num_clusters,
+        clients_per_department=args.clients_per_dept,
+        enable_dept_clustering=True,
+        load_in_4bit=args.load_in_4bit,
     )
 
 # Example:
