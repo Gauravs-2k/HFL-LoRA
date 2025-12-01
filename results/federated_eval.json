@@ -1,0 +1,66 @@
+{
+  "base_model": "Qwen/Qwen1.5-1.8B-Chat",
+  "config": "app/model/dept_lora_federated.json",
+  "results": [
+    {
+      "department": "finance",
+      "dataset": "app/dataset/test/FINANCE_test.jsonl",
+      "num_samples": 200,
+      "base": {
+        "accuracy": 0.93
+      },
+      "models": [
+        {
+          "accuracy": 0.935,
+          "id": "results/adapters/finance",
+          "delta_vs_base": 0.0050000000000000044
+        }
+      ]
+    },
+    {
+      "department": "hr",
+      "dataset": "app/dataset/test/HR_test.jsonl",
+      "num_samples": 200,
+      "base": {
+        "accuracy": 0.185
+      },
+      "models": [
+        {
+          "accuracy": 0.185,
+          "id": "results/adapters/hr",
+          "delta_vs_base": 0.0
+        }
+      ]
+    },
+    {
+      "department": "engineering",
+      "dataset": "app/dataset/test/ENGINEERING_test.jsonl",
+      "num_samples": 200,
+      "base": {
+        "accuracy": 0.36
+      },
+      "models": [
+        {
+          "accuracy": 0.36,
+          "id": "results/adapters/engineering",
+          "delta_vs_base": 0.0
+        }
+      ]
+    },
+    {
+      "department": "it_support",
+      "dataset": "app/dataset/test/IT_SUPPORT_test.jsonl",
+      "num_samples": 200,
+      "base": {
+        "accuracy": 0.095
+      },
+      "models": [
+        {
+          "accuracy": 0.095,
+          "id": "results/adapters/customer_support",
+          "delta_vs_base": 0.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "base_model": "Qwen/Qwen1.5-1.8B-Chat",
+  "experiment": "Local vs Federated LoRA Comparison",
+  "departments": {
+    "finance": {
+      "base_accuracy": 0.93,
+      "local_adapter": {
+        "id": "Gaurav2k/qwen1.5-1.8b-chat-finance",
+        "accuracy": 0.94,
+        "delta_vs_base": 0.009999999999999898
+      },
+      "federated_adapter": {
+        "id": "results/adapters/finance",
+        "accuracy": 0.935,
+        "delta_vs_base": 0.0050000000000000044
+      },
+      "fed_vs_local_delta": -0.004999999999999893
+    },
+    "hr": {
+      "base_accuracy": 0.185,
+      "local_adapter": {
+        "id": "Gaurav2k/qwen1.5-1.8b-chat-hr",
+        "accuracy": 0.24,
+        "delta_vs_base": 0.05499999999999999
+      },
+      "federated_adapter": {
+        "id": "results/adapters/hr",
+        "accuracy": 0.185,
+        "delta_vs_base": 0.0
+      },
+      "fed_vs_local_delta": -0.05499999999999999
+    },
+    "engineering": {
+      "base_accuracy": 0.365,
+      "local_adapter": {
+        "id": "Gaurav2k/qwen1.5-1.8b-chat-engineering",
+        "accuracy": 0.36,
+        "delta_vs_base": -0.0050000000000000044
+      },
+      "federated_adapter": {
+        "id": "results/adapters/engineering",
+        "accuracy": 0.36,
+        "delta_vs_base": -0.0050000000000000044
+      },
+      "fed_vs_local_delta": 0.0
+    },
+    "it_support": {
+      "base_accuracy": 0.095,
+      "local_adapter": {
+        "id": "Gaurav2k/qwen1.5-1.8b-chat-it_support",
+        "accuracy": 0.095,
+        "delta_vs_base": 0.0
+      },
+      "federated_adapter": {
+        "id": "results/adapters/customer_support",
+        "accuracy": 0.095,
+        "delta_vs_base": 0.0
+      },
+      "fed_vs_local_delta": 0.0
+    }
+  }
+}

@@ -10,12 +10,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from app.model.inference import parse_dtype
 
 DEFAULT_BASE_MODEL = "Qwen/Qwen1.5-1.8B-Chat"
-# Optimized hyperparameters for better accuracy
-DEFAULT_LORA_R = 16  # Increased from 8 for better capacity
-DEFAULT_LORA_ALPHA = 32  # Maintain alpha = 2*r ratio
-DEFAULT_LORA_DROPOUT = 0.01  # Reduced from 0.05 for less regularization
-# Expanded target modules for better coverage
-DEFAULT_LORA_TARGET_MODULES: Optional[Sequence[str]] = ["q_proj", "k_proj", "v_proj", "o_proj"]
+DEFAULT_LORA_R = 8
+DEFAULT_LORA_ALPHA = 16
+DEFAULT_LORA_DROPOUT = 0.05
+DEFAULT_LORA_TARGET_MODULES: Optional[Sequence[str]] = ["q_proj", "v_proj"]
 DEFAULT_DTYPE = "auto"
 DEFAULT_DEVICE_MAP = "cpu"
 
@@ -96,6 +94,48 @@ def load_adapter_model(
     return peft_model, tokenizer
 
 
+def load_adapter_weights_only(
+    adapter_model: str,
+    parameter_names: Sequence[str],
+    device: str = "cpu",
+) -> Optional[List[np.ndarray]]:
+    from huggingface_hub import hf_hub_download
+    from safetensors.torch import load_file as load_safetensors
+    import os
+    
+    try:
+        adapter_path = hf_hub_download(
+            repo_id=adapter_model,
+            filename="adapter_model.safetensors",
+        )
+        adapter_state = load_safetensors(adapter_path, device=device)
+    except Exception:
+        try:
+            adapter_path = hf_hub_download(
+                repo_id=adapter_model,
+                filename="adapter_model.bin",
+            )
+            adapter_state = torch.load(adapter_path, map_location=device)
+        except Exception as e:
+            print(f"    Could not download adapter: {e}")
+            return None
+    
+    arrays: List[np.ndarray] = []
+    for name in parameter_names:
+        matched = False
+        for key, tensor in adapter_state.items():
+            name_suffix = name.split("base_model.model.")[-1]
+            key_suffix = key.replace("base_model.model.", "")
+            if name_suffix == key_suffix or name.endswith(key) or key.endswith(name_suffix):
+                arrays.append(tensor.cpu().numpy().astype(np.float32))
+                matched = True
+                break
+        if not matched:
+            return None
+    
+    return arrays if len(arrays) == len(parameter_names) else None
+
+
 def collect_lora_parameter_names(model: torch.nn.Module) -> List[str]:
     return [name for name, param in model.named_parameters() if param.requires_grad]
 
@@ -171,13 +211,12 @@ def export_lora_adapter(
     
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Convert numpy arrays to torch tensors and build state dict
     lora_state_dict = {}
     for name, array in zip(names, arrays):
         tensor = torch.from_numpy(np.asarray(array, dtype=np.float32))
-        lora_state_dict[name] = tensor
+        clean_name = name.replace(".lora_A.default.", ".lora_A.").replace(".lora_B.default.", ".lora_B.")
+        lora_state_dict[clean_name] = tensor
     
-    # Save LoRA weights in safetensors format (compressed, safe)
     save_file(lora_state_dict, output_dir / "adapter_model.safetensors")
     
     # Save adapter configuration

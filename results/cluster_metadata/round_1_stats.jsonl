@@ -1,0 +1,4 @@
+{"round": 1, "department": "engineering", "num_clients": 3, "avg_loss": 0.0, "parameter_norm": 11.655585289001465}
+{"round": 1, "department": "finance", "num_clients": 3, "avg_loss": 0.0, "parameter_norm": 11.984222412109375}
+{"round": 1, "department": "customer_support", "num_clients": 3, "avg_loss": 0.0, "parameter_norm": 11.703971862792969}
+{"round": 1, "department": "hr", "num_clients": 3, "avg_loss": 0.0, "parameter_norm": 11.774300575256348}

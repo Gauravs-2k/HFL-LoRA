@@ -1,0 +1,6 @@
+{
+  "finance": ["results/adapters/finance"],
+  "hr": ["results/adapters/hr"],
+  "engineering": ["results/adapters/engineering"],
+  "it_support": ["results/adapters/customer_support"]
+}

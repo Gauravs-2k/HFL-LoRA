@@ -47,6 +47,7 @@ from app.federation.lora_utils import (
     create_lora_model,
     export_lora_adapter,
     load_adapter_model,
+    load_adapter_weights_only,
     lora_state_to_ndarrays,
     ndarrays_to_lora_state,
 )
@@ -421,24 +422,27 @@ def simulate_sequential_training(
             adapters = json.load(f)
 
     department_states: Dict[str, List[np.ndarray]] = {}
-    previous_dept_states: Dict[str, List[np.ndarray]] = {}  # For FLoRA residual
+    previous_dept_states: Dict[str, List[np.ndarray]] = {}  
     
     for dept in departments:
         adapter_model = adapters.get(dept)
         if adapter_model:
-            model, _ = load_adapter_model(
-                adapter_model,
-                base_model=base_model,
-                r=r,
-                alpha=alpha,
-                dropout=dropout,
-                target_modules=target_modules,
-                dtype=dtype,
-                device_map="cpu",
-            )
-            state = collect_lora_state(model, names)
-            arrays = lora_state_to_ndarrays(state, names)
-            department_states[dept] = arrays
+            print(f"  Loading pre-trained adapter for {dept}: {adapter_model}")
+            try:
+                adapter_state = load_adapter_weights_only(
+                    adapter_model,
+                    names,
+                    device="cpu",
+                )
+                if adapter_state is not None:
+                    department_states[dept] = adapter_state
+                    print(f"  ✓ Loaded adapter for {dept}")
+                else:
+                    print(f"  ⚠ Could not load adapter for {dept}, using initial state")
+                    department_states[dept] = clone_numpy_state(initial_state)
+            except Exception as e:
+                print(f"  ⚠ Error loading adapter for {dept}: {e}")
+                department_states[dept] = clone_numpy_state(initial_state)
         else:
             department_states[dept] = clone_numpy_state(initial_state)
         
@@ -750,6 +754,7 @@ if __name__ == "__main__":
     )
 
 # Example:
+# source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 1 --clients-per-dept 3
 # source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 1 --clients-per-dept 10
 
 
