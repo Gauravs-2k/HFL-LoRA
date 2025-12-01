@@ -17,12 +17,12 @@ from app.utils.config import settings
 
 SAVE_ROOT = "results/evaluation"
 
-# Department → dataset mapping (your Option A)
+# Department → dataset mapping (now using test data)
 DEPARTMENTS = {
-    "finance": "app/dataset/dept/FINANCE_dept.jsonl",
-    "hr": "app/dataset/dept/HR_dept.jsonl",
-    "engineering": "app/dataset/dept/ENGINEERING_dept.jsonl",
-    "it_support": "app/dataset/dept/IT_SUPPORT_dept.jsonl",
+    "finance": "app/dataset/test/FINANCE_test.jsonl",
+    "hr": "app/dataset/test/HR_test.jsonl",
+    "engineering": "app/dataset/test/ENGINEERING_test.jsonl",
+    "it_support": "app/dataset/test/IT_SUPPORT_test.jsonl",
 }
 
 # HuggingFace models you want to test (from your list)

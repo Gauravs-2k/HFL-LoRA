@@ -1,0 +1,76 @@
+{
+  "base_model": "Qwen/Qwen1.5-1.8B-Chat",
+  "config": "app/model/dept_lora_base.json",
+  "results": {
+    "base": {
+      "sst2": {
+        "task": "sst2",
+        "accuracy": 0.5,
+        "f1": 0.0,
+        "num_samples": 10
+      },
+      "mrpc": {
+        "task": "mrpc",
+        "accuracy": 0.6,
+        "f1": 0.5,
+        "num_samples": 10
+      }
+    },
+    "finance": {
+      "sst2": {
+        "task": "sst2",
+        "accuracy": 1.0,
+        "f1": 1.0,
+        "num_samples": 10
+      },
+      "mrpc": {
+        "task": "mrpc",
+        "accuracy": 0.8,
+        "f1": 0.8571428571428571,
+        "num_samples": 10
+      }
+    },
+    "hr": {
+      "sst2": {
+        "task": "sst2",
+        "accuracy": 0.8,
+        "f1": 0.75,
+        "num_samples": 10
+      },
+      "mrpc": {
+        "task": "mrpc",
+        "accuracy": 0.8,
+        "f1": 0.8571428571428571,
+        "num_samples": 10
+      }
+    },
+    "engineering": {
+      "sst2": {
+        "task": "sst2",
+        "accuracy": 0.5,
+        "f1": 0.0,
+        "num_samples": 10
+      },
+      "mrpc": {
+        "task": "mrpc",
+        "accuracy": 0.4,
+        "f1": 0.0,
+        "num_samples": 10
+      }
+    },
+    "it_support": {
+      "sst2": {
+        "task": "sst2",
+        "accuracy": 0.5,
+        "f1": 0.0,
+        "num_samples": 10
+      },
+      "mrpc": {
+        "task": "mrpc",
+        "accuracy": 0.4,
+        "f1": 0.0,
+        "num_samples": 10
+      }
+    }
+  }
+}

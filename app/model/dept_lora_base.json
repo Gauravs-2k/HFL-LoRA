@@ -1,0 +1,14 @@
+{
+  "finance": [
+    "Gaurav2k/qwen1.5-1.8b-chat-finance"
+  ],
+  "hr": [
+    "Gaurav2k/qwen1.5-1.8b-chat-hr"
+  ],
+  "engineering": [
+    "Gaurav2k/qwen1.5-1.8b-chat-engineering"
+  ],
+  "it_support": [
+    "Gaurav2k/qwen1.5-1.8b-chat-it_support"
+  ]
+}
