@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import PeftModel
+import numpy as np
 from datasets import load_dataset
-import evaluate
-from sklearn.metrics import accuracy_score, f1_score
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score, f1_score
 
 from app.model.inference import parse_dtype
 
@@ -54,15 +54,34 @@ def load_model_with_adapter(
     
     # Now load adapter if present
     if adapter_path and adapter_path.exists():
-        print(f"Loading adapter from {adapter_path}")
-        model = PeftModel.from_pretrained(model, str(adapter_path))
+        print(f"[ADAPTER] Loading adapter from {adapter_path}")
+        
+        try:
+            # Load the PEFT model
+            peft_model = PeftModel.from_pretrained(model, str(adapter_path))
+            
+            # CRITICAL FIX: Merge the adapter weights into the base model
+            # Without this, the model uses the base weights and ignores the adapter!
+            print(f"[ADAPTER] Merging adapter weights into base model...")
+            model = peft_model.merge_and_unload()
+            
+            print(f"[ADAPTER] Adapter weights MERGED successfully!")
+        except Exception as e:
+            print(f"[ADAPTER] ERROR loading adapter: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+    else:
+        print(f"[ADAPTER] NO ADAPTER - using base model only")
+        if adapter_path:
+            print(f"[ADAPTER] Adapter path does not exist: {adapter_path}")
     
     model.eval()
     return model, tokenizer
 
 
 def evaluate_sst2(model, tokenizer, max_samples: int = 500):
-    """Evaluate on SST-2 (Sentiment Analysis)."""
+    """Evaluate on SST-2 (Sentiment Analysis) using logit-based classification."""
     print("\n=== Evaluating on SST-2 (Sentiment) ===")
     dataset = load_dataset("glue", "sst2", split="validation")
     
@@ -72,33 +91,30 @@ def evaluate_sst2(model, tokenizer, max_samples: int = 500):
     predictions = []
     labels = []
     
+    # Get token IDs for "positive" and "negative"
+    pos_token_id = tokenizer.encode(" positive", add_special_tokens=False)[0]
+    neg_token_id = tokenizer.encode(" negative", add_special_tokens=False)[0]
+    
     for example in tqdm(dataset, desc="SST-2"):
         text = example["sentence"]
         label = example["label"]
         
-        # Prompt for sentiment classification
-        prompt = f"Classify the sentiment of this sentence as positive (1) or negative (0):\n{text}\nSentiment:"
+        # Improved prompt for sentiment classification
+        prompt = f"Review: {text}\nSentiment:"
         
         inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=256)
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         
         with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=1,
-                temperature=0.1,
-                do_sample=False,
-            )
-        
-        response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-        
-        # Parse response
-        if "1" in response or "positive" in response.lower():
-            pred = 1
-        elif "0" in response or "negative" in response.lower():
-            pred = 0
-        else:
-            pred = 0  # Default to negative if unclear
+            outputs = model(**inputs)
+            logits = outputs.logits[0, -1, :]  # Last token logits
+            
+            # Compare logits for "positive" vs "negative" tokens
+            pos_logit = logits[pos_token_id].item()
+            neg_logit = logits[neg_token_id].item()
+            
+            # Predict based on which has higher probability
+            pred = 1 if pos_logit > neg_logit else 0
         
         predictions.append(pred)
         labels.append(label)
@@ -115,7 +131,7 @@ def evaluate_sst2(model, tokenizer, max_samples: int = 500):
 
 
 def evaluate_mrpc(model, tokenizer, max_samples: int = 200):
-    """Evaluate on MRPC (Paraphrase Detection)."""
+    """Evaluate on MRPC (Paraphrase Detection) using logit-based classification."""
     print("\n=== Evaluating on MRPC (Paraphrase) ===")
     dataset = load_dataset("glue", "mrpc", split="validation")
     
@@ -125,32 +141,31 @@ def evaluate_mrpc(model, tokenizer, max_samples: int = 200):
     predictions = []
     labels = []
     
+    # Get token IDs for "yes" and "no"
+    yes_token_id = tokenizer.encode(" yes", add_special_tokens=False)[0]
+    no_token_id = tokenizer.encode(" no", add_special_tokens=False)[0]
+    
     for example in tqdm(dataset, desc="MRPC"):
         sentence1 = example["sentence1"]
         sentence2 = example["sentence2"]
         label = example["label"]
         
-        prompt = f"Are these two sentences paraphrases? Answer yes (1) or no (0):\nSentence 1: {sentence1}\nSentence 2: {sentence2}\nAnswer:"
+        # Improved prompt
+        prompt = f"Sentence 1: {sentence1}\nSentence 2: {sentence2}\nAre they paraphrases?"
         
         inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         
         with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=1,
-                temperature=0.1,
-                do_sample=False,
-            )
-        
-        response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-        
-        if "1" in response or "yes" in response.lower():
-            pred = 1
-        elif "0" in response or "no" in response.lower():
-            pred = 0
-        else:
-            pred = 0
+            outputs = model(**inputs)
+            logits = outputs.logits[0, -1, :]
+            
+            # Compare logits for "yes" vs "no"
+            yes_logit = logits[yes_token_id].item()
+            no_logit = logits[no_token_id].item()
+            
+            # Predict 1 if "yes" has higher probability
+            pred = 1 if yes_logit > no_logit else 0
         
         predictions.append(pred)
         labels.append(label)

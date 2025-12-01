@@ -1,0 +1,21 @@
+{
+  "base_model": "Qwen/Qwen1.5-0.5B-Chat",
+  "num_clients_evaluated": 1,
+  "clients": [
+    {
+      "department": "customer_support",
+      "client_name": "round_9_client_0",
+      "round": 9,
+      "client_id": 0,
+      "adapter_path": "results\\client_exports\\customer_support\\round_9_client_0",
+      "tasks": {
+        "sst2": {
+          "task": "sst2",
+          "accuracy": 0.85,
+          "f1": 0.8598130841121495,
+          "num_samples": 100
+        }
+      }
+    }
+  ]
+}

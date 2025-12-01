@@ -1,0 +1,12 @@
+{
+  "base_model": "Qwen/Qwen1.5-0.5B-Chat",
+  "adapter": "results\\client_exports\\customer_support\\round_10_client_0",
+  "tasks": {
+    "sst2": {
+      "task": "sst2",
+      "accuracy": 0.92,
+      "f1": 0.92,
+      "num_samples": 50
+    }
+  }
+}

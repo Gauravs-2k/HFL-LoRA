@@ -162,35 +162,48 @@ def export_lora_adapter(
     dtype: str = DEFAULT_DTYPE,
     device_map: str = DEFAULT_DEVICE_MAP,
 ) -> None:
-    # Force CPU device_map to prevent CUDA OOM during export
-    # We're only exporting, not running inference, so CPU is fine
-    export_device_map = "cpu"
+    """
+    Export ONLY LoRA adapter weights (not the full model).
+    This saves ~90% disk space compared to saving the full model.
+    """
+    import json
+    from safetensors.torch import save_file
     
-    # Clear GPU cache before loading model
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    
-    model, tokenizer = create_lora_model(
-        base_model,
-        r,
-        alpha,
-        dropout,
-        target_modules=target_modules,
-        dtype=dtype,
-        device_map=export_device_map,
-    )
-    device = next(model.parameters()).device
-    state = ndarrays_to_lora_state(names, arrays, device)
-    apply_lora_state(model, state)
     output_dir.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(output_dir)
+    
+    # Convert numpy arrays to torch tensors and build state dict
+    lora_state_dict = {}
+    for name, array in zip(names, arrays):
+        tensor = torch.from_numpy(np.asarray(array, dtype=np.float32))
+        lora_state_dict[name] = tensor
+    
+    # Save LoRA weights in safetensors format (compressed, safe)
+    save_file(lora_state_dict, output_dir / "adapter_model.safetensors")
+    
+    # Save adapter configuration
+    adapter_config = {
+        "base_model_name_or_path": base_model,
+        "peft_type": "LORA",
+        "task_type": "CAUSAL_LM",
+        "inference_mode": True,
+        "r": r,
+        "lora_alpha": alpha,
+        "lora_dropout": dropout,
+        "target_modules": list(target_modules) if target_modules else None,
+        "bias": "none",
+        "fan_in_fan_out": False,
+        "modules_to_save": None,
+    }
+    
+    with open(output_dir / "adapter_config.json", "w") as f:
+        json.dump(adapter_config, f, indent=2)
+    
+    # Save tokenizer (this is small, ~1MB)
+    tokenizer = create_tokenizer(base_model)
     tokenizer.save_pretrained(output_dir)
     
-    # Clean up
-    del model
-    del tokenizer
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    print(f"✓ Saved LoRA adapter ({len(lora_state_dict)} params, ~{sum(t.numel() for t in lora_state_dict.values()) * 4 / 1024 / 1024:.1f}MB)")
+
 
 
 def compute_lora_similarity(
