@@ -37,13 +37,13 @@
       "dataset": "app/dataset/test/ENGINEERING_test.jsonl",
       "num_samples": 200,
       "base": {
-        "accuracy": 0.38
+        "accuracy": 0.365
       },
       "models": [
         {
-          "accuracy": 0.325,
+          "accuracy": 0.36,
           "id": "Gaurav2k/qwen1.5-1.8b-chat-engineering",
-          "delta_vs_base": -0.05499999999999999
+          "delta_vs_base": -0.0050000000000000044
         }
       ]
     },

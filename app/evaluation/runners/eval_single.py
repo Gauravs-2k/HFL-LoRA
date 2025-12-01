@@ -1,14 +1,12 @@
 from tqdm import tqdm
 from app.evaluation.models.predictor import predict
 from app.evaluation.metrics.accuracy import accuracy
+from app.evaluation.metrics.eng_accuracy import accuracy as eng_accuracy
 
 
-def evaluate_single_model(model, tokenizer, dataset):
-    """
-    Evaluates a (model, tokenizer) pair on a dataset of:
-        { "input": ..., "target": ... }
-    Returns accuracy + predictions.
-    """
+def evaluate_single_model(model, tokenizer, dataset, accuracy_func=None):
+    if accuracy_func is None:
+        accuracy_func = accuracy
     predictions = []
     targets = []
 
@@ -18,7 +16,7 @@ def evaluate_single_model(model, tokenizer, dataset):
         targets.append(item["target"])
 
     return {
-        "accuracy": accuracy(predictions, targets),
+        "accuracy": accuracy_func(predictions, targets),
         "predictions": predictions,
         "targets": targets,
     }

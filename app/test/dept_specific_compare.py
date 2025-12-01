@@ -9,6 +9,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from app.evaluation.datasets.department_loader import load_department_dataset
 from app.evaluation.models.loader import load_model
 from app.evaluation.runners.eval_single import evaluate_single_model
+from app.evaluation.metrics.eng_accuracy import accuracy as eng_accuracy
+from app.evaluation.metrics.accuracy import accuracy as simple_accuracy
 from app.model.inference import parse_dtype
 from app.utils.config import settings
 
@@ -102,9 +104,10 @@ def summarize_result(result):
 	return summary
 
 
-def evaluate_model(base_model, candidate, dataset, dtype, device_map):
+def evaluate_model(base_model, candidate, dataset, dtype, device_map, dept):
 	tokenizer, model = load_pair(base_model, candidate, dtype, device_map)
-	res = evaluate_single_model(model, tokenizer, dataset)
+	accuracy_func = eng_accuracy if dept == "engineering" else simple_accuracy
+	res = evaluate_single_model(model, tokenizer, dataset, accuracy_func)
 	summary = summarize_result(res)
 	del model
 	if torch.cuda.is_available():
@@ -146,7 +149,7 @@ def run():
 			continue
 		print(f"\n{dept.upper()} :: samples={len(dataset)}")
 		try:
-			base_summary = evaluate_model(base_model, None, dataset, args.dtype, args.device_map)
+			base_summary = evaluate_model(base_model, None, dataset, args.dtype, args.device_map, dept)
 			print(f"  base ({base_model}) accuracy: {base_summary['accuracy']:.4f}")
 		except Exception as exc:
 			print(f"  Failed base evaluation: {exc}")
@@ -161,7 +164,7 @@ def run():
 		for candidate in config.get(dept, []):
 			print(f"  evaluating {candidate}...")
 			try:
-				model_summary = evaluate_model(base_model, candidate, dataset, args.dtype, args.device_map)
+				model_summary = evaluate_model(base_model, candidate, dataset, args.dtype, args.device_map, dept)
 				model_summary["id"] = candidate
 				if "accuracy" in base_summary:
 					model_summary["delta_vs_base"] = model_summary["accuracy"] - base_summary.get("accuracy", 0.0)
