@@ -242,3 +242,6 @@ GLUE BENCHMARK COMPARISON SUMMARY
 
 if __name__ == "__main__":
     main()
+
+
+# source env/bin/activate && PYTHONPATH=$PWD python app/test/glue_lora_base.py --max-samples 500 --output results/glue_comparison_full_results.json
