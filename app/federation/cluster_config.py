@@ -18,7 +18,7 @@ DEPT_MAX_CLUSTERS = 5  # Maximum clusters for departments
 DEPT_CLUSTER_MIXING = 0.3  # How much to mix with cluster average (0.0 = no mixing, 1.0 = full mixing)
 
 # Client clustering configuration (within departments)
-CLIENT_NUM_CLUSTERS = 2  # Number of clusters for clients within departments
+CLIENT_NUM_CLUSTERS = 1  # Number of clusters for clients within departments (1 = FedAvg)
 
 # General
 RANDOM_SEED = 42

@@ -367,7 +367,7 @@ def simulate_sequential_training(
     max_seq_length: int = DEFAULT_MAX_SEQ_LENGTH,
     global_mixing: float = 0.1,
     dataset_map: Optional[Mapping[str, Path]] = None,
-    num_clusters: int = 2,
+    num_clusters: int = 1,
     clients_per_department: int = DEFAULT_CLIENTS_PER_DEPARTMENT,
     enable_dept_clustering: bool = True,
     load_in_4bit: bool = False,
@@ -722,7 +722,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--lora-dropout", type=float, default=DEFAULT_LORA_DROPOUT)
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--personal-root", type=Path)
-    parser.add_argument("--num-clusters", type=int, default=2)
+    parser.add_argument("--num-clusters", type=int, default=1)
     parser.add_argument("--clients-per-dept", type=int, default=DEFAULT_CLIENTS_PER_DEPARTMENT)
     parser.add_argument("--load-in-4bit", action="store_true", help="Enable 4-bit quantization")
     return parser.parse_args()

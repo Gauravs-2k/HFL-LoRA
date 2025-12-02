@@ -1,0 +1,110 @@
+{
+  "finance": {
+    "round_1": [
+      "results/client_exports/finance/round_1_client_0",
+      "results/client_exports/finance/round_1_client_1",
+      "results/client_exports/finance/round_1_client_2"
+    ],
+    "round_2": [
+      "results/client_exports/finance/round_2_client_0",
+      "results/client_exports/finance/round_2_client_1",
+      "results/client_exports/finance/round_2_client_2"
+    ],
+    "round_3": [
+      "results/client_exports/finance/round_3_client_0",
+      "results/client_exports/finance/round_3_client_1",
+      "results/client_exports/finance/round_3_client_2"
+    ],
+    "round_4": [
+      "results/client_exports/finance/round_4_client_0",
+      "results/client_exports/finance/round_4_client_1",
+      "results/client_exports/finance/round_4_client_2"
+    ],
+    "round_5": [
+      "results/client_exports/finance/round_5_client_0",
+      "results/client_exports/finance/round_5_client_1",
+      "results/client_exports/finance/round_5_client_2"
+    ]
+  },
+  "hr": {
+    "round_1": [
+      "results/client_exports/hr/round_1_client_0",
+      "results/client_exports/hr/round_1_client_1",
+      "results/client_exports/hr/round_1_client_2"
+    ],
+    "round_2": [
+      "results/client_exports/hr/round_2_client_0",
+      "results/client_exports/hr/round_2_client_1",
+      "results/client_exports/hr/round_2_client_2"
+    ],
+    "round_3": [
+      "results/client_exports/hr/round_3_client_0",
+      "results/client_exports/hr/round_3_client_1",
+      "results/client_exports/hr/round_3_client_2"
+    ],
+    "round_4": [
+      "results/client_exports/hr/round_4_client_0",
+      "results/client_exports/hr/round_4_client_1",
+      "results/client_exports/hr/round_4_client_2"
+    ],
+    "round_5": [
+      "results/client_exports/hr/round_5_client_0",
+      "results/client_exports/hr/round_5_client_1",
+      "results/client_exports/hr/round_5_client_2"
+    ]
+  },
+  "engineering": {
+    "round_1": [
+      "results/client_exports/engineering/round_1_client_0",
+      "results/client_exports/engineering/round_1_client_1",
+      "results/client_exports/engineering/round_1_client_2"
+    ],
+    "round_2": [
+      "results/client_exports/engineering/round_2_client_0",
+      "results/client_exports/engineering/round_2_client_1",
+      "results/client_exports/engineering/round_2_client_2"
+    ],
+    "round_3": [
+      "results/client_exports/engineering/round_3_client_0",
+      "results/client_exports/engineering/round_3_client_1",
+      "results/client_exports/engineering/round_3_client_2"
+    ],
+    "round_4": [
+      "results/client_exports/engineering/round_4_client_0",
+      "results/client_exports/engineering/round_4_client_1",
+      "results/client_exports/engineering/round_4_client_2"
+    ],
+    "round_5": [
+      "results/client_exports/engineering/round_5_client_0",
+      "results/client_exports/engineering/round_5_client_1",
+      "results/client_exports/engineering/round_5_client_2"
+    ]
+  },
+  "it_support": {
+    "round_1": [
+      "results/client_exports/customer_support/round_1_client_0",
+      "results/client_exports/customer_support/round_1_client_1",
+      "results/client_exports/customer_support/round_1_client_2"
+    ],
+    "round_2": [
+      "results/client_exports/customer_support/round_2_client_0",
+      "results/client_exports/customer_support/round_2_client_1",
+      "results/client_exports/customer_support/round_2_client_2"
+    ],
+    "round_3": [
+      "results/client_exports/customer_support/round_3_client_0",
+      "results/client_exports/customer_support/round_3_client_1",
+      "results/client_exports/customer_support/round_3_client_2"
+    ],
+    "round_4": [
+      "results/client_exports/customer_support/round_4_client_0",
+      "results/client_exports/customer_support/round_4_client_1",
+      "results/client_exports/customer_support/round_4_client_2"
+    ],
+    "round_5": [
+      "results/client_exports/customer_support/round_5_client_0",
+      "results/client_exports/customer_support/round_5_client_1",
+      "results/client_exports/customer_support/round_5_client_2"
+    ]
+  }
+}
