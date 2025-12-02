@@ -47,7 +47,6 @@ from app.federation.lora_utils import (
     create_lora_model,
     export_lora_adapter,
     load_adapter_model,
-    load_adapter_weights_only,
     lora_state_to_ndarrays,
     ndarrays_to_lora_state,
 )
@@ -367,7 +366,7 @@ def simulate_sequential_training(
     max_seq_length: int = DEFAULT_MAX_SEQ_LENGTH,
     global_mixing: float = 0.1,
     dataset_map: Optional[Mapping[str, Path]] = None,
-    num_clusters: int = 1,
+    num_clusters: int = 2,
     clients_per_department: int = DEFAULT_CLIENTS_PER_DEPARTMENT,
     enable_dept_clustering: bool = True,
     load_in_4bit: bool = False,
@@ -422,27 +421,24 @@ def simulate_sequential_training(
             adapters = json.load(f)
 
     department_states: Dict[str, List[np.ndarray]] = {}
-    previous_dept_states: Dict[str, List[np.ndarray]] = {}  
+    previous_dept_states: Dict[str, List[np.ndarray]] = {}  # For FLoRA residual
     
     for dept in departments:
         adapter_model = adapters.get(dept)
         if adapter_model:
-            print(f"  Loading pre-trained adapter for {dept}: {adapter_model}")
-            try:
-                adapter_state = load_adapter_weights_only(
-                    adapter_model,
-                    names,
-                    device="cpu",
-                )
-                if adapter_state is not None:
-                    department_states[dept] = adapter_state
-                    print(f"  ✓ Loaded adapter for {dept}")
-                else:
-                    print(f"  ⚠ Could not load adapter for {dept}, using initial state")
-                    department_states[dept] = clone_numpy_state(initial_state)
-            except Exception as e:
-                print(f"  ⚠ Error loading adapter for {dept}: {e}")
-                department_states[dept] = clone_numpy_state(initial_state)
+            model, _ = load_adapter_model(
+                adapter_model,
+                base_model=base_model,
+                r=r,
+                alpha=alpha,
+                dropout=dropout,
+                target_modules=target_modules,
+                dtype=dtype,
+                device_map="cpu",
+            )
+            state = collect_lora_state(model, names)
+            arrays = lora_state_to_ndarrays(state, names)
+            department_states[dept] = arrays
         else:
             department_states[dept] = clone_numpy_state(initial_state)
         
@@ -566,19 +562,17 @@ def simulate_sequential_training(
                             state[index] = np.array(agg_a[position], copy=True)
                     client_states[idx] = state
 
-            # Aggregate all clients using FLoRA method
+            # Aggregate all clients using FLoRA method (residual-based)
+            # This ensures stable convergence and reduces client drift
             prev_state = previous_dept_states.get(department)
-            if prev_state is not None and cluster_config.FLORA_USE_RESIDUAL:
-                department_states[department] = flora_weighted_aggregate(
-                    list(zip(client_states, client_weights)),
-                    previous_global=prev_state,
-                    momentum=cluster_config.FLORA_MOMENTUM,
-                    use_residual=True,
-                )
-            else:
-                department_states[department] = average_ndarrays(
-                    list(zip(client_states, client_weights))
-                )
+            
+            # Always use FLoRA aggregation for department-level (no FedAvg fallback)
+            department_states[department] = flora_weighted_aggregate(
+                list(zip(client_states, client_weights)),
+                previous_global=prev_state,  # Will be None only in Round 1
+                momentum=cluster_config.FLORA_MOMENTUM,  # μ = 0.1
+                use_residual=cluster_config.FLORA_USE_RESIDUAL,
+            )
             
             # Log statistics
             total_examples = sum(client_weights)
@@ -722,7 +716,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--lora-dropout", type=float, default=DEFAULT_LORA_DROPOUT)
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--personal-root", type=Path)
-    parser.add_argument("--num-clusters", type=int, default=1)
+    parser.add_argument("--num-clusters", type=int, default=2)
     parser.add_argument("--clients-per-dept", type=int, default=DEFAULT_CLIENTS_PER_DEPARTMENT)
     parser.add_argument("--load-in-4bit", action="store_true", help="Enable 4-bit quantization")
     return parser.parse_args()
@@ -754,7 +748,6 @@ if __name__ == "__main__":
     )
 
 # Example:
-# source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 1 --clients-per-dept 3
 # source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 1 --clients-per-dept 10
 
 
