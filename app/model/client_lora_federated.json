@@ -24,6 +24,31 @@
       "results/client_exports/finance/round_5_client_0",
       "results/client_exports/finance/round_5_client_1",
       "results/client_exports/finance/round_5_client_2"
+    ],
+    "round_6": [
+      "results/client_exports/finance/round_6_client_0",
+      "results/client_exports/finance/round_6_client_1",
+      "results/client_exports/finance/round_6_client_2"
+    ],
+    "round_7": [
+      "results/client_exports/finance/round_7_client_0",
+      "results/client_exports/finance/round_7_client_1",
+      "results/client_exports/finance/round_7_client_2"
+    ],
+    "round_8": [
+      "results/client_exports/finance/round_8_client_0",
+      "results/client_exports/finance/round_8_client_1",
+      "results/client_exports/finance/round_8_client_2"
+    ],
+    "round_9": [
+      "results/client_exports/finance/round_9_client_0",
+      "results/client_exports/finance/round_9_client_1",
+      "results/client_exports/finance/round_9_client_2"
+    ],
+    "round_10": [
+      "results/client_exports/finance/round_10_client_0",
+      "results/client_exports/finance/round_10_client_1",
+      "results/client_exports/finance/round_10_client_2"
     ]
   },
   "hr": {
@@ -51,6 +76,31 @@
       "results/client_exports/hr/round_5_client_0",
       "results/client_exports/hr/round_5_client_1",
       "results/client_exports/hr/round_5_client_2"
+    ],
+    "round_6": [
+      "results/client_exports/hr/round_6_client_0",
+      "results/client_exports/hr/round_6_client_1",
+      "results/client_exports/hr/round_6_client_2"
+    ],
+    "round_7": [
+      "results/client_exports/hr/round_7_client_0",
+      "results/client_exports/hr/round_7_client_1",
+      "results/client_exports/hr/round_7_client_2"
+    ],
+    "round_8": [
+      "results/client_exports/hr/round_8_client_0",
+      "results/client_exports/hr/round_8_client_1",
+      "results/client_exports/hr/round_8_client_2"
+    ],
+    "round_9": [
+      "results/client_exports/hr/round_9_client_0",
+      "results/client_exports/hr/round_9_client_1",
+      "results/client_exports/hr/round_9_client_2"
+    ],
+    "round_10": [
+      "results/client_exports/hr/round_10_client_0",
+      "results/client_exports/hr/round_10_client_1",
+      "results/client_exports/hr/round_10_client_2"
     ]
   },
   "engineering": {
@@ -78,6 +128,31 @@
       "results/client_exports/engineering/round_5_client_0",
       "results/client_exports/engineering/round_5_client_1",
       "results/client_exports/engineering/round_5_client_2"
+    ],
+    "round_6": [
+      "results/client_exports/engineering/round_6_client_0",
+      "results/client_exports/engineering/round_6_client_1",
+      "results/client_exports/engineering/round_6_client_2"
+    ],
+    "round_7": [
+      "results/client_exports/engineering/round_7_client_0",
+      "results/client_exports/engineering/round_7_client_1",
+      "results/client_exports/engineering/round_7_client_2"
+    ],
+    "round_8": [
+      "results/client_exports/engineering/round_8_client_0",
+      "results/client_exports/engineering/round_8_client_1",
+      "results/client_exports/engineering/round_8_client_2"
+    ],
+    "round_9": [
+      "results/client_exports/engineering/round_9_client_0",
+      "results/client_exports/engineering/round_9_client_1",
+      "results/client_exports/engineering/round_9_client_2"
+    ],
+    "round_10": [
+      "results/client_exports/engineering/round_10_client_0",
+      "results/client_exports/engineering/round_10_client_1",
+      "results/client_exports/engineering/round_10_client_2"
     ]
   },
   "it_support": {
@@ -105,6 +180,31 @@
       "results/client_exports/customer_support/round_5_client_0",
       "results/client_exports/customer_support/round_5_client_1",
       "results/client_exports/customer_support/round_5_client_2"
+    ],
+    "round_6": [
+      "results/client_exports/customer_support/round_6_client_0",
+      "results/client_exports/customer_support/round_6_client_1",
+      "results/client_exports/customer_support/round_6_client_2"
+    ],
+    "round_7": [
+      "results/client_exports/customer_support/round_7_client_0",
+      "results/client_exports/customer_support/round_7_client_1",
+      "results/client_exports/customer_support/round_7_client_2"
+    ],
+    "round_8": [
+      "results/client_exports/customer_support/round_8_client_0",
+      "results/client_exports/customer_support/round_8_client_1",
+      "results/client_exports/customer_support/round_8_client_2"
+    ],
+    "round_9": [
+      "results/client_exports/customer_support/round_9_client_0",
+      "results/client_exports/customer_support/round_9_client_1",
+      "results/client_exports/customer_support/round_9_client_2"
+    ],
+    "round_10": [
+      "results/client_exports/customer_support/round_10_client_0",
+      "results/client_exports/customer_support/round_10_client_1",
+      "results/client_exports/customer_support/round_10_client_2"
     ]
   }
 }
