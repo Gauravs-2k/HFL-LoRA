@@ -3,8 +3,6 @@ import json
 import sys
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Sequence
-
-# Force unbuffered output so prints appear immediately
 sys.stdout.reconfigure(line_buffering=True)
 
 import numpy as np
@@ -522,7 +520,9 @@ def simulate_sequential_training(
                         "learning_rate": learning_rate,
                     },
                 )
-                client_states.append(clone_numpy_state(arrays))
+                # Extract only LoRA A matrices for department aggregation
+                a_matrices = [arrays[idx] for idx in a_indices]
+                client_states.append(a_matrices)
                 client_weights.append(num_examples if num_examples > 0 else 1)
                 
                 # Clean up and free GPU memory after each client
@@ -535,44 +535,25 @@ def simulate_sequential_training(
                 continue
 
             # ===== PHASE 2: INTRA-DEPARTMENT AGGREGATION (Client-level) =====
-            # Use cluster-aware aggregation for clients within department
-            aggregated_per_item, client_clusters = cluster_aware_average_selected(
-                list(zip(client_states, client_weights)),
-                a_indices,
-                num_clusters=num_clusters,
-                max_dim=4096,
-                max_iter=25,
-                random_state=round_index,
-            )
-
-            # Apply global mixing (blend cluster averages with local updates)
-            if aggregated_per_item:
-                for idx, agg_a in enumerate(aggregated_per_item):
-                    if not agg_a:
-                        continue
-                    state = client_states[idx]
-                    if global_mixing > 0.0 and len(client_states) > 1:
-                        mix = float(global_mixing)
-                        for position, index in enumerate(a_indices):
-                            local_arr = state[index]
-                            blended = (1.0 - mix) * local_arr + mix * agg_a[position]
-                            state[index] = blended.astype(np.float32, copy=False)
-                    else:
-                        for position, index in enumerate(a_indices):
-                            state[index] = np.array(agg_a[position], copy=True)
-                    client_states[idx] = state
-
-            # Aggregate all clients using FLoRA method (residual-based)
-            # This ensures stable convergence and reduces client drift
-            prev_state = previous_dept_states.get(department)
+            # FLoRA aggregation on LoRA A matrices only
+            # client_states now contains only A matrices
+            prev_a_state = [previous_dept_states[department][idx] for idx in a_indices] if department in previous_dept_states else None
             
-            # Always use FLoRA aggregation for department-level (no FedAvg fallback)
-            department_states[department] = flora_weighted_aggregate(
+            # FLoRA aggregate only A matrices from clients
+            aggregated_a_matrices = flora_weighted_aggregate(
                 list(zip(client_states, client_weights)),
-                previous_global=prev_state,  # Will be None only in Round 1
-                momentum=cluster_config.FLORA_MOMENTUM,  # μ = 0.1
+                previous_global=prev_a_state,
+                momentum=cluster_config.FLORA_MOMENTUM,
                 use_residual=cluster_config.FLORA_USE_RESIDUAL,
             )
+            
+            # Update department state: replace A matrices with FLoRA-aggregated ones
+            # Keep B matrices and other parameters unchanged from previous round
+            if department not in department_states:
+                department_states[department] = clone_numpy_state(initial_state)
+            
+            for position, idx in enumerate(a_indices):
+                department_states[department][idx] = aggregated_a_matrices[position]
             
             # Log statistics
             total_examples = sum(client_weights)
@@ -601,10 +582,16 @@ def simulate_sequential_training(
                     metadata_dir if cluster_config.SAVE_CLUSTER_METADATA else None,
                 )
             
-            # Cluster departments
+            # Extract FLoRA-aggregated A matrices for clustering
+            dept_a_matrices = {
+                dept: [dept_state[idx] for idx in a_indices]
+                for dept, dept_state in department_states.items()
+            }
+            
+            # Cluster departments based on FLoRA-aggregated A matrices
             dept_clusters, dept_to_cluster = department_level_clustering(
-                department_states,
-                a_indices,
+                dept_a_matrices,
+                list(range(len(a_indices))),  # Use sequential indices for extracted A matrices
                 num_clusters=None,  # Auto-determine using elbow method
                 max_clusters=cluster_config.DEPT_MAX_CLUSTERS,
                 max_dim=cluster_config.MAX_EMBEDDING_DIM,
@@ -748,7 +735,7 @@ if __name__ == "__main__":
     )
 
 # Example:
-# source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 1 --clients-per-dept 10
+# source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 10 --clients-per-dept 3
 
 
 # mac command:
