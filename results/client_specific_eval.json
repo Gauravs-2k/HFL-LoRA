@@ -1,0 +1,304 @@
+{
+  "base_model": "Qwen/Qwen1.5-1.8B-Chat",
+  "source": "auto_discovered",
+  "results_root": "results",
+  "evaluation_type": "client_specific_datasets",
+  "client_results": {
+    "hr": {
+      "round_1": [
+        {
+          "client_id": 0,
+          "path": "results/client_exports/hr/round_1_client_0",
+          "dataset_path": "app/dataset/hr_personal_clients/1e230e55efea4edab95db9cb87f6a9cb.jsonl",
+          "samples": 10,
+          "accuracy": 0.0
+        },
+        {
+          "client_id": 1,
+          "path": "results/client_exports/hr/round_1_client_1",
+          "dataset_path": "app/dataset/hr_personal_clients/3a26cd36d3334adab1c76fb4c681dd18.jsonl",
+          "samples": 10,
+          "accuracy": 0.4
+        },
+        {
+          "client_id": 2,
+          "path": "results/client_exports/hr/round_1_client_2",
+          "dataset_path": "app/dataset/hr_personal_clients/52742fcb55074daaa66894a637e4d0e3.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 3,
+          "path": "results/client_exports/hr/round_1_client_3",
+          "dataset_path": "app/dataset/hr_personal_clients/891fc0df13554e3b9737c2d51dfa7bf7.jsonl",
+          "samples": 10,
+          "accuracy": 0.0
+        },
+        {
+          "client_id": 4,
+          "path": "results/client_exports/hr/round_1_client_4",
+          "dataset_path": "app/dataset/hr_personal_clients/a14ec53c48cb4fad8ed8921d1e11cc83.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 5,
+          "path": "results/client_exports/hr/round_1_client_5",
+          "dataset_path": "app/dataset/hr_personal_clients/b8e0f40a023f47bf8add9bbf605693de.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 6,
+          "path": "results/client_exports/hr/round_1_client_6",
+          "dataset_path": "app/dataset/hr_personal_clients/c4dd5dbd4cdf4b0ab138c0af3be8066a.jsonl",
+          "samples": 10,
+          "accuracy": 0.3
+        },
+        {
+          "client_id": 7,
+          "path": "results/client_exports/hr/round_1_client_7",
+          "dataset_path": "app/dataset/hr_personal_clients/c8bbb3f187024cda8ec49e6b036eb0b0.jsonl",
+          "samples": 10,
+          "accuracy": 0.9
+        },
+        {
+          "client_id": 8,
+          "path": "results/client_exports/hr/round_1_client_8",
+          "dataset_path": "app/dataset/hr_personal_clients/d81e03c6fb4a49e3a1ee5aeb4156bf1a.jsonl",
+          "samples": 10,
+          "accuracy": 0.1
+        },
+        {
+          "client_id": 9,
+          "path": "results/client_exports/hr/round_1_client_9",
+          "dataset_path": "app/dataset/hr_personal_clients/e3addcd33c9d42b2be07c4bbbf9ce92e.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        }
+      ]
+    },
+    "customer_support": {
+      "round_1": [
+        {
+          "client_id": 0,
+          "path": "results/client_exports/customer_support/round_1_client_0",
+          "dataset_path": "app/dataset/customer_support_personal_clients/1e230e55efea4edab95db9cb87f6a9cb.jsonl",
+          "samples": 10,
+          "accuracy": 0.1
+        },
+        {
+          "client_id": 1,
+          "path": "results/client_exports/customer_support/round_1_client_1",
+          "dataset_path": "app/dataset/customer_support_personal_clients/3a26cd36d3334adab1c76fb4c681dd18.jsonl",
+          "samples": 10,
+          "accuracy": 0.4
+        },
+        {
+          "client_id": 2,
+          "path": "results/client_exports/customer_support/round_1_client_2",
+          "dataset_path": "app/dataset/customer_support_personal_clients/52742fcb55074daaa66894a637e4d0e3.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 3,
+          "path": "results/client_exports/customer_support/round_1_client_3",
+          "dataset_path": "app/dataset/customer_support_personal_clients/891fc0df13554e3b9737c2d51dfa7bf7.jsonl",
+          "samples": 10,
+          "accuracy": 0.0
+        },
+        {
+          "client_id": 4,
+          "path": "results/client_exports/customer_support/round_1_client_4",
+          "dataset_path": "app/dataset/customer_support_personal_clients/a14ec53c48cb4fad8ed8921d1e11cc83.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 5,
+          "path": "results/client_exports/customer_support/round_1_client_5",
+          "dataset_path": "app/dataset/customer_support_personal_clients/b8e0f40a023f47bf8add9bbf605693de.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 6,
+          "path": "results/client_exports/customer_support/round_1_client_6",
+          "dataset_path": "app/dataset/customer_support_personal_clients/c4dd5dbd4cdf4b0ab138c0af3be8066a.jsonl",
+          "samples": 10,
+          "accuracy": 0.3
+        },
+        {
+          "client_id": 7,
+          "path": "results/client_exports/customer_support/round_1_client_7",
+          "dataset_path": "app/dataset/customer_support_personal_clients/c8bbb3f187024cda8ec49e6b036eb0b0.jsonl",
+          "samples": 10,
+          "accuracy": 0.9
+        },
+        {
+          "client_id": 8,
+          "path": "results/client_exports/customer_support/round_1_client_8",
+          "dataset_path": "app/dataset/customer_support_personal_clients/d81e03c6fb4a49e3a1ee5aeb4156bf1a.jsonl",
+          "samples": 10,
+          "accuracy": 0.1
+        },
+        {
+          "client_id": 9,
+          "path": "results/client_exports/customer_support/round_1_client_9",
+          "dataset_path": "app/dataset/customer_support_personal_clients/e3addcd33c9d42b2be07c4bbbf9ce92e.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        }
+      ]
+    },
+    "engineering": {
+      "round_1": [
+        {
+          "client_id": 0,
+          "path": "results/client_exports/engineering/round_1_client_0",
+          "dataset_path": "app/dataset/engineering_personal_clients/1e230e55efea4edab95db9cb87f6a9cb.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 1,
+          "path": "results/client_exports/engineering/round_1_client_1",
+          "dataset_path": "app/dataset/engineering_personal_clients/3a26cd36d3334adab1c76fb4c681dd18.jsonl",
+          "samples": 10,
+          "accuracy": 0.7
+        },
+        {
+          "client_id": 2,
+          "path": "results/client_exports/engineering/round_1_client_2",
+          "dataset_path": "app/dataset/engineering_personal_clients/52742fcb55074daaa66894a637e4d0e3.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        },
+        {
+          "client_id": 3,
+          "path": "results/client_exports/engineering/round_1_client_3",
+          "dataset_path": "app/dataset/engineering_personal_clients/891fc0df13554e3b9737c2d51dfa7bf7.jsonl",
+          "samples": 10,
+          "accuracy": 0.1
+        },
+        {
+          "client_id": 4,
+          "path": "results/client_exports/engineering/round_1_client_4",
+          "dataset_path": "app/dataset/engineering_personal_clients/a14ec53c48cb4fad8ed8921d1e11cc83.jsonl",
+          "samples": 10,
+          "accuracy": 0.8
+        },
+        {
+          "client_id": 5,
+          "path": "results/client_exports/engineering/round_1_client_5",
+          "dataset_path": "app/dataset/engineering_personal_clients/b8e0f40a023f47bf8add9bbf605693de.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        },
+        {
+          "client_id": 6,
+          "path": "results/client_exports/engineering/round_1_client_6",
+          "dataset_path": "app/dataset/engineering_personal_clients/c4dd5dbd4cdf4b0ab138c0af3be8066a.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        },
+        {
+          "client_id": 7,
+          "path": "results/client_exports/engineering/round_1_client_7",
+          "dataset_path": "app/dataset/engineering_personal_clients/c8bbb3f187024cda8ec49e6b036eb0b0.jsonl",
+          "samples": 10,
+          "accuracy": 1.0
+        },
+        {
+          "client_id": 8,
+          "path": "results/client_exports/engineering/round_1_client_8",
+          "dataset_path": "app/dataset/engineering_personal_clients/d81e03c6fb4a49e3a1ee5aeb4156bf1a.jsonl",
+          "samples": 10,
+          "accuracy": 0.4
+        },
+        {
+          "client_id": 9,
+          "path": "results/client_exports/engineering/round_1_client_9",
+          "dataset_path": "app/dataset/engineering_personal_clients/e3addcd33c9d42b2be07c4bbbf9ce92e.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        }
+      ]
+    },
+    "finance": {
+      "round_1": [
+        {
+          "client_id": 0,
+          "path": "results/client_exports/finance/round_1_client_0",
+          "dataset_path": "app/dataset/finance_personal_clients/1e230e55efea4edab95db9cb87f6a9cb.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        },
+        {
+          "client_id": 1,
+          "path": "results/client_exports/finance/round_1_client_1",
+          "dataset_path": "app/dataset/finance_personal_clients/3a26cd36d3334adab1c76fb4c681dd18.jsonl",
+          "samples": 10,
+          "accuracy": 0.6
+        },
+        {
+          "client_id": 2,
+          "path": "results/client_exports/finance/round_1_client_2",
+          "dataset_path": "app/dataset/finance_personal_clients/52742fcb55074daaa66894a637e4d0e3.jsonl",
+          "samples": 10,
+          "accuracy": 0.9
+        },
+        {
+          "client_id": 3,
+          "path": "results/client_exports/finance/round_1_client_3",
+          "dataset_path": "app/dataset/finance_personal_clients/891fc0df13554e3b9737c2d51dfa7bf7.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 4,
+          "path": "results/client_exports/finance/round_1_client_4",
+          "dataset_path": "app/dataset/finance_personal_clients/a14ec53c48cb4fad8ed8921d1e11cc83.jsonl",
+          "samples": 10,
+          "accuracy": 1.0
+        },
+        {
+          "client_id": 5,
+          "path": "results/client_exports/finance/round_1_client_5",
+          "dataset_path": "app/dataset/finance_personal_clients/b8e0f40a023f47bf8add9bbf605693de.jsonl",
+          "samples": 10,
+          "accuracy": 0.8
+        },
+        {
+          "client_id": 6,
+          "path": "results/client_exports/finance/round_1_client_6",
+          "dataset_path": "app/dataset/finance_personal_clients/c4dd5dbd4cdf4b0ab138c0af3be8066a.jsonl",
+          "samples": 10,
+          "accuracy": 0.7
+        },
+        {
+          "client_id": 7,
+          "path": "results/client_exports/finance/round_1_client_7",
+          "dataset_path": "app/dataset/finance_personal_clients/c8bbb3f187024cda8ec49e6b036eb0b0.jsonl",
+          "samples": 10,
+          "accuracy": 0.9
+        },
+        {
+          "client_id": 8,
+          "path": "results/client_exports/finance/round_1_client_8",
+          "dataset_path": "app/dataset/finance_personal_clients/d81e03c6fb4a49e3a1ee5aeb4156bf1a.jsonl",
+          "samples": 10,
+          "accuracy": 0.5
+        },
+        {
+          "client_id": 9,
+          "path": "results/client_exports/finance/round_1_client_9",
+          "dataset_path": "app/dataset/finance_personal_clients/e3addcd33c9d42b2be07c4bbbf9ce92e.jsonl",
+          "samples": 10,
+          "accuracy": 0.9
+        }
+      ]
+    }
+  }
+}

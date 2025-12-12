@@ -1,0 +1,17 @@
+{
+  "base_model": "Qwen/Qwen1.5-1.8B-Chat",
+  "source": "auto_discovered",
+  "results_root": "results",
+  "base_accuracies": {
+    "hr": 0.12,
+    "customer_support": 0.12,
+    "engineering": 0.4,
+    "finance": 0.94
+  },
+  "client_results": {
+    "hr": {},
+    "customer_support": {},
+    "engineering": {},
+    "finance": {}
+  }
+}

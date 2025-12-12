@@ -31,3 +31,5 @@ matplotlib
 scikit-learn
 
 bitsandbytes
+
+seaborn

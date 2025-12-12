@@ -244,21 +244,6 @@ class DepartmentLoraClient(fl.client.NumPyClient):
 
         state = collect_lora_state(self.model, self.lora_parameter_names)
         arrays = lora_state_to_ndarrays(state, self.lora_parameter_names)
-
-        # Export client model for client-side evaluation
-        # Use CPU to avoid GPU memory issues
-        export_lora_adapter(
-            self.base_model,
-            self.lora_parameter_names,
-            arrays,
-            self.export_dir,
-            r=self.r,
-            alpha=self.alpha,
-            dropout=self.dropout,
-            target_modules=self.target_modules,
-            dtype=self.dtype,
-            device_map="cpu",  # Force CPU for export
-        )
         
         metrics = {"department": self.department, "train_loss": loss}
         return arrays, len(records), metrics
@@ -404,7 +389,15 @@ def simulate_sequential_training(
         device_map=device_map,
         load_in_4bit=load_in_4bit,
     )
-    print("✓ Model initialized successfully", flush=True)
+    try:
+        model_device = next(shared_model.parameters()).device
+        print(f"✓ Model initialized successfully on device: {model_device}", flush=True)
+        if model_device.type == "cpu" and torch.cuda.is_available():
+            print("⚠ WARNING: Model loaded on CPU but GPU is available. Forcing to GPU...", flush=True)
+            shared_model.to("cuda")
+            print(f"✓ Model moved to GPU", flush=True)
+    except StopIteration:
+        print("✓ Model initialized successfully", flush=True)
     
     print("Collecting LoRA parameter names...", flush=True)
     names = collect_lora_parameter_names(shared_model)
@@ -432,11 +425,14 @@ def simulate_sequential_training(
                 dropout=dropout,
                 target_modules=target_modules,
                 dtype=dtype,
-                device_map="cpu",
+                device_map=device_map, 
             )
             state = collect_lora_state(model, names)
             arrays = lora_state_to_ndarrays(state, names)
             department_states[dept] = arrays
+            del model
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         else:
             department_states[dept] = clone_numpy_state(initial_state)
         
@@ -520,6 +516,21 @@ def simulate_sequential_training(
                         "learning_rate": learning_rate,
                     },
                 )
+                
+                # Export individual client adapter
+                export_lora_adapter(
+                    base_model,
+                    names,
+                    arrays,
+                    client.export_dir,
+                    r=r,
+                    alpha=alpha,
+                    dropout=dropout,
+                    target_modules=target_modules,
+                    dtype=dtype,
+                    device_map="cpu",  # Save to CPU format for portability
+                )
+                
                 # Extract only LoRA A matrices for department aggregation
                 a_matrices = [arrays[idx] for idx in a_indices]
                 client_states.append(a_matrices)
@@ -670,9 +681,11 @@ def simulate_sequential_training(
                 dropout=dropout,
                 target_modules=target_modules,
                 dtype=dtype,
-                device_map=device_map,
+                device_map="cpu", 
             )
             print(f"  Exported: {department}")
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         
         print(f"\nRound {round_index} complete!\n")
     
@@ -735,8 +748,7 @@ if __name__ == "__main__":
     )
 
 # Example:
-# source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 10 --clients-per-dept 3
-
+# source env/bin/activate && CUDA_VISIBLE_DEVICES=0 PYTHONPATH=$PWD python app/federation/department_client.py --rounds 10 --clients-per-dept 5
 
 # mac command:
     # python3 -m app.federation.department_client \

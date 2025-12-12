@@ -15,7 +15,7 @@ DEFAULT_LORA_ALPHA = 16
 DEFAULT_LORA_DROPOUT = 0.05
 DEFAULT_LORA_TARGET_MODULES: Optional[Sequence[str]] = ["q_proj", "v_proj"]
 DEFAULT_DTYPE = "auto"
-DEFAULT_DEVICE_MAP = "cpu"
+DEFAULT_DEVICE_MAP = "auto"  
 
 
 def create_tokenizer(base_model: str) -> AutoTokenizer:
