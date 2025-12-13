@@ -1,10 +1,3 @@
-"""
-FLoRA-inspired aggregation methods for federated learning.
-
-This module implements robust aggregation strategies inspired by FLoRA
-(Federated Fine-Tuning Large Language Models with Heterogeneous Low-Rank Adaptations)
-to reduce client drift and improve convergence in federated learning scenarios.
-"""
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -18,21 +11,6 @@ def compute_update_residuals(
 ) -> List[np.ndarray]:
     """
     Compute residuals (deltas) between current and previous parameters.
-    
-    This is key to FLoRA's approach: instead of directly aggregating parameters,
-    we aggregate the updates/residuals to reduce drift.
-    
-    Parameters
-    ----------
-    current_params : Sequence[np.ndarray]
-        Current parameter arrays
-    previous_params : Sequence[np.ndarray]
-        Previous parameter arrays (from last round)
-    
-    Returns
-    -------
-    List[np.ndarray]
-        Residual arrays for each parameter
     """
     residuals = []
     for curr, prev in zip(current_params, previous_params):
@@ -49,27 +27,6 @@ def flora_weighted_aggregate(
 ) -> List[np.ndarray]:
     """
     FLoRA-inspired weighted aggregation with residual accumulation.
-    
-    This method implements the core principles of FLoRA:
-    1. Residual-based aggregation to reduce drift
-    2. Proper mathematical weighting to avoid aggregation noise
-    3. Momentum-based updates for stability
-    
-    Parameters
-    ----------
-    items : Sequence[Tuple[Sequence[np.ndarray], int]]
-        List of (parameters, weight) tuples from each client
-    previous_global : Optional[Sequence[np.ndarray]]
-        Previous global parameters for residual calculation
-    momentum : float
-        Momentum coefficient (0.0 = no momentum, 0.9 = high momentum)
-    use_residual : bool
-        Whether to use residual-based aggregation
-    
-    Returns
-    -------
-    List[np.ndarray]
-        Aggregated parameters
     """
     if not items:
         return []
@@ -122,23 +79,6 @@ def stack_lora_matrices(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Stack and aggregate LoRA A and B matrices properly.
-    
-    In LoRA, the adaptation is W = BA where B is (out_dim, r) and A is (r, in_dim).
-    Proper aggregation should maintain the low-rank structure.
-    
-    Parameters
-    ----------
-    lora_a_list : Sequence[np.ndarray]
-        List of LoRA A matrices
-    lora_b_list : Sequence[np.ndarray]
-        List of LoRA B matrices
-    weights : Sequence[float]
-        Normalized weights for each client
-    
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray]
-        Aggregated (A, B) matrices
     """
     total_weight = sum(weights)
     normalized_weights = [w / total_weight for w in weights] if total_weight > 0 else weights
@@ -163,23 +103,6 @@ def momentum_based_mixing(
 ) -> List[np.ndarray]:
     """
     Mix local and global parameters with momentum.
-    
-    This creates a soft update that prevents sudden parameter changes
-    and reduces oscillation during training.
-    
-    Parameters
-    ----------
-    local_params : Sequence[np.ndarray]
-        Local client parameters
-    global_params : Sequence[np.ndarray]
-        Global aggregated parameters
-    momentum : float
-        Mixing ratio (0.0 = full global, 1.0 = full local)
-    
-    Returns
-    -------
-    List[np.ndarray]
-        Mixed parameters
     """
     mixed = []
     for local, global_p in zip(local_params, global_params):
@@ -194,16 +117,6 @@ def momentum_based_mixing(
 def compute_parameter_norm(params: Sequence[np.ndarray]) -> float:
     """
     Compute L2 norm of parameters (useful for drift monitoring).
-    
-    Parameters
-    ----------
-    params : Sequence[np.ndarray]
-        Parameter arrays
-    
-    Returns
-    -------
-    float
-        L2 norm
     """
     total_norm_sq = 0.0
     for p in params:
@@ -217,21 +130,6 @@ def compute_cosine_similarity(
 ) -> float:
     """
     Compute cosine similarity between two parameter sets.
-    
-    This is useful for measuring similarity between departments
-    or tracking how much parameters have changed.
-    
-    Parameters
-    ----------
-    params1 : Sequence[np.ndarray]
-        First parameter set
-    params2 : Sequence[np.ndarray]
-        Second parameter set
-    
-    Returns
-    -------
-    float
-        Cosine similarity in [0, 1]
     """
     dot_product = 0.0
     norm1_sq = 0.0
